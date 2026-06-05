@@ -7,7 +7,7 @@ import {
 } from "./_lib/store.js";
 import { DEFAULT_USERS } from "./_lib/config.js";
 import { redisEnabled } from "./_lib/redis.js";
-import { allowCors, queryParam, requireAdmin, validUsername } from "./_lib/http.js";
+import { allowCors, queryParam, validUsername } from "./_lib/http.js";
 
 /**
  * /api/roster — the SHARED roster (committed defaults + Redis-stored adds).
