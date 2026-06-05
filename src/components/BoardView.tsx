@@ -204,17 +204,6 @@ export default function BoardView({ boardId }: { boardId: string }) {
         </button>
       </div>
 
-      {/* Honest note about what the numbers mean. */}
-      <p className="mt-4 rounded-xl border border-edge bg-surface/50 px-4 py-3 font-sans text-xs leading-relaxed text-muted">
-        <span className="font-mono font-bold text-grind">heads up:</span> the
-        daily number is <strong className="text-ink">distinct problems solved</strong>{" "}
-        that day (re-solving the same one counts once) — that&apos;s the
-        &ldquo;did you do a problem today&rdquo; signal, not raw submissions.{" "}
-        <strong className="text-ink">total</strong> is cumulative unique solved.
-        Built from your last ~20 accepted problems, so very long streaks may be
-        capped. Only <strong className="text-ink">public</strong> profiles work.
-      </p>
-
       {load === "unreachable" && (
         <p className="mt-4 rounded-xl border border-danger/50 bg-surface/50 px-4 py-3 font-mono text-xs text-danger">
           couldn&apos;t reach the board — retrying on the next sync.
