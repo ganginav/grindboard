@@ -9,8 +9,7 @@ auto-fetched from public profiles.
 As of v2 the board is **shared and server-backed**: every visitor sees the same
 roster, and a serverless **caching proxy** sits between the browser and the
 public LeetCode API so we don't hammer it. Built with **Vite + React +
-TypeScript + Tailwind**; deploys to **Vercel** (SPA + serverless functions),
-with a **Docker** path for self-hosting.
+TypeScript + Tailwind**; deploys to **Vercel** (SPA + serverless functions).
 
 ![stack](https://img.shields.io/badge/vite-react%2Bts-39d353) ![license](https://img.shields.io/badge/license-MIT-8b949e)
 
@@ -54,13 +53,9 @@ Data still comes from [**alfa-leetcode-api**](https://github.com/alfaarghya/alfa
 a REST wrapper over LeetCode's GraphQL, using `/{user}/calendar` and
 `/{user}/solved`.
 
-### Graceful fallback (no server needed to run)
-
-If `/api/*` isn't available — e.g. you run plain `vite`, `vite preview`, or the
-Docker/nginx image — the app automatically falls back to **local mode**: it
-reads the committed `DEFAULT_USERS` plus any usernames you add in *your* browser
-(`localStorage`), fetching the public alfa API directly from the in-app "API
-base" field. It never crashes when the backend is absent.
+The app requires `/api` to function — there is no client-side fetch fallback. If
+`/api/leaderboard` can't be reached, the board shows a "couldn't reach the board"
+notice and retries on the next sync.
 
 ### API routes (`/api`)
 
@@ -90,7 +85,6 @@ Environment Variables** (or a local `.env` for `vercel dev`). See
 | `ADMIN_TOKEN` | no | — | if set, roster writes require header `x-admin-token`; if unset, writes are open |
 | `CRON_SECRET` | no | — | optional secret for the snapshot cron (`Authorization: Bearer …`) |
 | `ALLOWED_ORIGINS` | no | — | comma-separated origins allowed to make **cross-origin** roster writes; only needed if the frontend is served from a different origin than `/api` (reads are public regardless) |
-| `VITE_API_BASE` | no | public alfa | **fallback/local mode only** (build-time); upstream for direct browser fetch when `/api` is absent |
 
 ¹ Redis is optional: without it the app still runs — stats are fetched uncached
 and the roster is just the committed defaults. **We use `@upstash/redis`, not the
@@ -113,21 +107,15 @@ vercel env pull        # pull env vars (incl. Upstash) into .env.local
 vercel dev             # serves the SPA AND /api at http://localhost:3000
 ```
 
-**Vite only (no `/api`, exercises the local fallback):**
-
-```bash
-npm run dev            # http://localhost:5173 — runs in local fallback mode
-```
-
-> Plain `npm run dev` does **not** run the serverless functions, so the app
-> shows "local mode" and reads the public alfa directly. Use `vercel dev` to
-> test the shared/cached path.
+> Plain `npm run dev` (Vite at http://localhost:5173) does **not** run the
+> serverless functions, so the board can't load — it shows a "couldn't reach the
+> board" notice. Use `vercel dev` for any real work.
 
 Build / preview:
 
 ```bash
 npm run build          # type-checks SPA + /api, then builds dist/
-npm run preview        # serve the built SPA (no /api → fallback)
+npm run preview        # serve the built SPA only (no /api → board can't load)
 ```
 
 ---
@@ -155,23 +143,6 @@ npm run preview        # serve the built SPA (no /api → fallback)
   `/api/roster` and shared with everyone. Non-default users can be removed.
   (If `ADMIN_TOKEN` is set, the UI shows a token field; a rejected write surfaces
   "edits are locked — enter the admin token".)
-
----
-
-## Self-host with Docker
-
-`docker compose up --build` runs the SPA (nginx, **:8080**) and a private
-`alfa-leetcode-api` (**:3000**).
-
-```bash
-docker compose up --build
-```
-
-The nginx image serves the **static SPA only** (no serverless `/api`), so it runs
-in **local fallback mode** and the browser talks to the alfa container directly
-(`VITE_API_BASE=http://localhost:3000`, baked at build). This is the simplest
-self-host and needs no Redis. To get the full shared/cached experience while
-self-hosting, deploy to Vercel and set `ALFA_API_BASE` to your own alfa instance.
 
 ---
 
@@ -209,11 +180,11 @@ api/                   # Vercel serverless functions (the shared backend)
   _lib/                #   redis, config, leetcode (normalize+fetch), store (cache+roster), http (auth)
   stats.ts roster.ts leaderboard.ts snapshot.ts
 src/
-  config.ts            # DEFAULT_USERS, colors, tuning, localStorage keys
+  config.ts            # DEFAULT_USERS, colors, admin-token storage key, tuning
   lib/api.ts           # client → /api data layer (swappable network source)
-  lib/leetcode.ts      # date helpers + normalize + streak + deriveMetrics (also powers local fallback)
+  lib/leetcode.ts      # date helpers + streak + deriveMetrics (client-side derivations)
   components/          # Header, Card, Leaderboard, Sparkline, SettingsRow
-  App.tsx              # mode detection (api vs local), sync orchestration, layout
+  App.tsx              # board load + sync orchestration, layout
 ```
 
 The LeetCode quirks (UTC bucketing, calendar string parsing, streak rule,
