@@ -1,4 +1,5 @@
 import { navigate } from "../lib/boards";
+import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
   /** Board name shown under the wordmark (omitted on the landing screen). */
@@ -59,6 +60,8 @@ export default function Header({
         >
           {syncing ? "syncing…" : "sync now"}
         </button>
+
+        <ThemeToggle />
       </div>
     </header>
   );

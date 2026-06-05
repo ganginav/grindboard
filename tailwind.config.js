@@ -1,23 +1,36 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  darkMode: "class", // theme flips via a `dark` class on <html>
   theme: {
     extend: {
       colors: {
-        // LeetCode-style dark palette
-        surface: "#282828", // card / panel
-        edge: "#3a3a3a", // borders
-        edge2: "#4a4a4a",
-        ink: "#f0f0f0", // primary text
-        muted: "#8a8f98", // secondary text
-        grind: "#2cbb5d", // LeetCode "Accepted" green (accent)
-        gold: "#ffa116", // LeetCode orange — streaks / #1
-        danger: "#ef4743", // LeetCode "Hard" red — errors
+        // Driven by CSS variables (see src/index.css) so the same class names
+        // resolve to the LeetCode light OR dark palette. `<alpha-value>` keeps
+        // `/60` opacity utilities working.
+        bg: "rgb(var(--bg) / <alpha-value>)", // page background
+        surface: "rgb(var(--surface) / <alpha-value>)", // card / panel
+        edge: "rgb(var(--edge) / <alpha-value>)", // borders
+        edge2: "rgb(var(--edge2) / <alpha-value>)",
+        ink: "rgb(var(--ink) / <alpha-value>)", // primary text
+        muted: "rgb(var(--muted) / <alpha-value>)", // secondary text
+        // Difficulty/brand accents — constant across light & dark (like LeetCode).
+        grind: "rgb(var(--grind) / <alpha-value>)", // "Accepted" green (accent)
+        gold: "rgb(var(--gold) / <alpha-value>)", // brand orange — streaks / #1
+        danger: "rgb(var(--danger) / <alpha-value>)", // "Hard" red — errors
       },
       fontFamily: {
-        // Clean system sans, like LeetCode (no more mono-everywhere).
-        sans: ['"Helvetica Neue"', "system-ui", "-apple-system", "Arial", "sans-serif"],
-        mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
+        // LeetCode's system UI stack.
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"Segoe UI"',
+          "Roboto",
+          '"Helvetica Neue"',
+          "Arial",
+          "sans-serif",
+        ],
+        mono: ['ui-monospace', '"SF Mono"', "Menlo", "Monaco", "Consolas", "monospace"],
       },
       keyframes: {
         pop: {
