@@ -3,13 +3,14 @@ import { getBoardRoster, getStatsCached } from "./_lib/store.js";
 import { getBoardMeta, normalizeBoardId } from "./_lib/board.js";
 import { getRedis } from "./_lib/redis.js";
 import { KEY } from "./_lib/config.js";
-import { agoKey, type Calendar, type FetchStatus } from "./_lib/leetcode.js";
+import { agoKey, type AcSub, type FetchStatus } from "./_lib/leetcode.js";
 import { allowCors, queryParam } from "./_lib/http.js";
 
 /** One user in the combined leaderboard payload. */
 interface BoardEntry {
   username: string;
-  calendar: Calendar;
+  /** Raw recent accepted submissions; the client buckets by local day. */
+  acSubs: AcSub[];
   total: number | null;
   /** Yesterday's solved snapshot, if cron snapshots exist (for solved deltas). */
   solvedYesterday: number | null;
@@ -66,14 +67,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (result.status === "ok" && result.data) {
       users.push({
         username,
-        calendar: result.data.calendar,
+        acSubs: result.data.acSubs,
         total: result.data.total,
         solvedYesterday,
       });
     } else {
       // result.status is "not_found" | "unreachable" here (ok always has data).
       const error = result.status === "ok" ? "unreachable" : result.status;
-      users.push({ username, calendar: {}, total: null, solvedYesterday, error });
+      users.push({ username, acSubs: [], total: null, solvedYesterday, error });
     }
 
     // Only pause when we actually hit upstream (cache misses), to respect limits.
