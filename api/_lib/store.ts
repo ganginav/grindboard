@@ -9,14 +9,15 @@ import { getRedis } from "./redis.js";
 import { KEY, cacheTtlSeconds } from "./config.js";
 import {
   fetchUpstreamStats,
-  type Calendar,
+  type AcSub,
   type FetchStatus,
 } from "./leetcode.js";
 
 /** Shape stored in Redis and returned to the client. */
 export interface CachedStats {
   username: string;
-  calendar: Calendar;
+  /** Raw recent accepted submissions; the client buckets these by local day. */
+  acSubs: AcSub[];
   total: number | null;
   cachedAt: number;
 }
@@ -61,7 +62,7 @@ export async function getStatsCached(username: string): Promise<StatsResult> {
 
   const data: CachedStats = {
     username,
-    calendar: upstream.calendar,
+    acSubs: upstream.acSubs,
     total: upstream.total,
     cachedAt: Date.now(),
   };

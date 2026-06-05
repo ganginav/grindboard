@@ -22,7 +22,7 @@ function entryToState(entry: BoardEntry): UserState {
   if (status !== "ok") return { status, metrics: null, solvedToday: null };
   const result: FetchResult = {
     status: "ok",
-    calendar: entry.calendar,
+    acSubs: entry.acSubs,
     total: entry.total ?? 0,
   };
   const solvedToday =

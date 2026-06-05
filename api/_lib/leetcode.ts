@@ -1,24 +1,22 @@
 /**
- * Server-side LeetCode data: upstream fetch + normalization.
- *
- * The "problems solved per day" calendar is built HERE (off the client): the
- * browser receives an already-normalized `{ "YYYY-MM-DD": count }` map and never
- * touches LeetCode's payload shapes. The client owns the *derivations*
- * (today / week / streak) over that map.
+ * Server-side LeetCode data: upstream fetch (no day bucketing).
  *
  * DESIGN — we want "did you do a PROBLEM today", not "did you submit". LeetCode's
- * submission calendar only counts daily *submissions* (re-subs included), which
- * isn't what we want. So the daily number comes from `recentAcSubmissionList`
- * (`/{user}/acSubmission`): we bucket those *accepted* submissions by UTC day and
- * count DISTINCT problems (titleSlug) per day → genuine problems-solved-per-day.
+ * submission calendar only counts daily *submissions* (re-subs included), so the
+ * daily number instead comes from `recentAcSubmissionList` (`/{user}/acSubmission`)
+ * — the recent *accepted* submissions. The server returns those raw as
+ * { ts, slug } pairs; the CLIENT buckets them into days and counts distinct
+ * problems. Bucketing lives client-side on purpose (see quirk #1).
  *
  * QUIRKS:
- *   1. UTC day bucketing — day keys come from getUTC* (see utcKey), so "today"
- *      doesn't drift for non-UTC viewers.
- *   2. Re-solves collapse — solving the same problem twice in a day counts once
- *      (distinct titleSlug per day).
+ *   1. LOCAL day bucketing (client) — because we have raw timestamps, the client
+ *      buckets by the viewer's LOCAL day, so an 11pm Thursday solve shows on
+ *      Thursday instead of drifting into Friday UTC. (The server keeps utcKey
+ *      only for the optional snapshot cron's day keys.)
+ *   2. Re-solves collapse — same problem twice in a day counts once (distinct
+ *      slug per day; done on the client).
  *   3. WINDOW CAP — LeetCode caps recentAcSubmissionList at 20 entries, so the
- *      calendar only reaches back ~the last 20 solved problems. Fine for today /
+ *      daily history reaches back ~the last 20 solved problems. Fine for today /
  *      this week / short streaks; longer streaks are truncated to the window.
  *   4. `total` from /solved is the cumulative unique solved count (full history).
  */
@@ -28,9 +26,20 @@ import { alfaBase } from "./config.js";
 export type Calendar = Record<string, number>;
 export type FetchStatus = "ok" | "not_found" | "unreachable";
 
+/** One recent accepted submission: unix-seconds timestamp + problem slug. */
+export interface AcSub {
+  ts: number;
+  slug: string;
+}
+
 export interface NormalizedStats {
   status: FetchStatus;
-  calendar: Calendar;
+  /**
+   * Recent accepted submissions. The server does NOT bucket these into days —
+   * the client buckets by the viewer's LOCAL day, so an 11pm solve lands on the
+   * day it was actually done rather than drifting into the next UTC day.
+   */
+  acSubs: AcSub[];
   /** Cumulative unique solved; null if /solved was unavailable. */
   total: number | null;
 }
@@ -57,31 +66,25 @@ export function agoKey(n: number): string {
 }
 
 /**
- * Build { UTC day -> distinct problems accepted } from a recentAcSubmissionList
- * payload (`{ submission: [{ titleSlug, timestamp, ... }] }`). Re-solving the
- * same problem on the same day counts once.
+ * Pull recent accepted submissions out of a recentAcSubmissionList payload
+ * (`{ submission: [{ titleSlug, timestamp, ... }] }`) as { ts, slug } pairs.
+ * No day bucketing here — that's the client's job (local timezone).
  */
-export function normalizeAcCalendar(payload: unknown): Calendar {
+export function extractAcSubs(payload: unknown): AcSub[] {
   const list =
     payload && typeof payload === "object" && Array.isArray((payload as Record<string, unknown>).submission)
       ? ((payload as Record<string, unknown>).submission as unknown[])
       : [];
 
-  const byDay: Record<string, Set<string>> = {};
+  const out: AcSub[] = [];
   for (const item of list) {
     if (!item || typeof item !== "object") continue;
     const rec = item as Record<string, unknown>;
     const ts = Number(rec.timestamp); // unix SECONDS (string)
     const slug = typeof rec.titleSlug === "string" ? rec.titleSlug : null;
     if (!Number.isFinite(ts) || !slug) continue;
-    const date = new Date(ts * 1000);
-    if (Number.isNaN(date.getTime())) continue;
-    const day = utcKey(date);
-    (byDay[day] ??= new Set()).add(slug);
+    out.push({ ts, slug });
   }
-
-  const out: Calendar = {};
-  for (const [day, slugs] of Object.entries(byDay)) out[day] = slugs.size;
   return out;
 }
 
@@ -134,19 +137,19 @@ export async function fetchUpstreamStats(
     // at 20 upstream regardless of what we ask).
     const acRes = await getJson(`${base}/${user}/acSubmission?limit=20`, controller.signal);
     if (acRes.status === 404) {
-      return { status: "not_found", calendar: {}, total: null };
+      return { status: "not_found", acSubs: [], total: null };
     }
     if (!acRes.ok) {
-      return { status: "unreachable", calendar: {}, total: null };
+      return { status: "unreachable", acSubs: [], total: null };
     }
 
     const acPayload: unknown = await acRes.json();
     if (hasErrorsEnvelope(acPayload)) {
       // alfa answers 200 with { errors: [...] } for bad handles.
-      return { status: "not_found", calendar: {}, total: null };
+      return { status: "not_found", acSubs: [], total: null };
     }
 
-    const calendar = normalizeAcCalendar(acPayload);
+    const acSubs = extractAcSubs(acPayload);
 
     let total: number | null = null;
     try {
@@ -161,9 +164,9 @@ export async function fetchUpstreamStats(
       // best-effort
     }
 
-    return { status: "ok", calendar, total };
+    return { status: "ok", acSubs, total };
   } catch {
-    return { status: "unreachable", calendar: {}, total: null };
+    return { status: "unreachable", acSubs: [], total: null };
   } finally {
     clearTimeout(timer);
   }

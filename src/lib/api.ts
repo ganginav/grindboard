@@ -6,7 +6,7 @@
  * needed — no accounts. This module is the single place the network lives.
  */
 
-import type { Calendar, FetchStatus } from "./leetcode";
+import type { AcSub, FetchStatus } from "./leetcode";
 
 export interface BoardMeta {
   id: string;
@@ -16,7 +16,8 @@ export interface BoardMeta {
 /** One user as returned by GET /api/leaderboard. */
 export interface BoardEntry {
   username: string;
-  calendar: Calendar;
+  /** Raw recent accepted submissions; bucketed into days client-side (local tz). */
+  acSubs: AcSub[];
   total: number | null;
   /** Yesterday's solved snapshot (if cron snapshots exist) — enables solved deltas. */
   solvedYesterday: number | null;
