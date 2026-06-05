@@ -30,7 +30,7 @@ export default function SettingsRow({ onAddUser }: SettingsRowProps) {
             placeholder="leetcode username"
             spellCheck={false}
             autoCapitalize="none"
-            className="min-w-0 flex-1 rounded-lg border border-edge2 bg-[#010409] px-3 py-2 font-mono text-sm text-ink placeholder:text-muted focus:border-grind focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-edge2 bg-bg px-3 py-2 font-mono text-sm text-ink placeholder:text-muted focus:border-grind focus:outline-none"
           />
           <button
             type="submit"

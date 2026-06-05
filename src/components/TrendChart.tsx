@@ -77,7 +77,7 @@ export default function TrendChart({ users }: { users: BoardUser[] }) {
         {/* horizontal gridlines + y labels */}
         {tickVals.map((v) => (
           <g key={v}>
-            <line x1={PAD.l} y1={y(v)} x2={W - PAD.r} y2={y(v)} stroke="#3a3a3a" strokeWidth={1} />
+            <line x1={PAD.l} y1={y(v)} x2={W - PAD.r} y2={y(v)} className="stroke-edge" strokeWidth={1} />
             <text x={PAD.l - 6} y={y(v) + 3} textAnchor="end" className="fill-muted" fontSize={10} fontFamily="JetBrains Mono, monospace">
               {v}
             </text>

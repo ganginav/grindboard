@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ThemeToggle from "./ThemeToggle";
 import { createBoard } from "../lib/api";
 import {
   boardIdFromPath,
@@ -56,6 +57,7 @@ export default function Landing() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-4 py-12">
+      <ThemeToggle className="fixed right-4 top-4" />
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
         <span className="text-grind">Leet</span>erboard
       </h1>
@@ -78,7 +80,7 @@ export default function Landing() {
             onChange={(e) => setName(e.target.value)}
             placeholder="board name (optional)"
             maxLength={40}
-            className="min-w-0 flex-1 rounded-lg border border-edge2 bg-[#010409] px-3 py-2 font-sans text-sm text-ink placeholder:text-muted focus:border-grind focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-edge2 bg-bg px-3 py-2 font-sans text-sm text-ink placeholder:text-muted focus:border-grind focus:outline-none"
           />
           <button
             type="submit"
@@ -102,7 +104,7 @@ export default function Landing() {
             placeholder="e.g. K7P2QXM"
             spellCheck={false}
             autoCapitalize="characters"
-            className="min-w-0 flex-1 rounded-lg border border-edge2 bg-[#010409] px-3 py-2 font-mono text-sm text-ink placeholder:text-muted focus:border-grind focus:outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-edge2 bg-bg px-3 py-2 font-mono text-sm text-ink placeholder:text-muted focus:border-grind focus:outline-none"
           />
           <button
             type="submit"
