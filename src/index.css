@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  /* Dark "grindset terminal" radial gradient. */
+  background:
+    radial-gradient(
+      circle at 20% -10%,
+      #11261a 0%,
+      #0a0e0d 45%,
+      #07090a 100%
+    );
+  background-attachment: fixed;
+  color: #e6edf3;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Monospace numbers line up nicely in tables/leaderboards. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
