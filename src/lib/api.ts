@@ -1,14 +1,14 @@
 /**
- * api.ts — the swappable data source for the SHARED (server-backed) board.
+ * api.ts — the data source for the shared (server-backed) board.
  *
- * In production (and under `vercel dev`) the client talks ONLY to our same-origin
- * `/api/*` serverless routes — never to LeetCode/alfa directly — so there are no
- * browser CORS concerns and caching + rate-limiting live on the server.
+ * The client talks ONLY to our same-origin `/api/*` serverless routes — never to
+ * LeetCode/alfa directly — so there are no browser CORS concerns and caching +
+ * rate-limiting live on the server. This module is the single place the network
+ * source lives — swap it and nothing else moves.
  *
- * When `/api/*` isn't available (e.g. plain `vite` with no functions, or
- * `vite preview`), `loadBoardViaApi()` returns null and the app falls back to
- * the legacy per-browser path in `leetcode.ts` (see App.tsx). This module is the
- * single place the network source lives — swap it and nothing else moves.
+ * `loadBoardViaApi()` returns null when the board can't be loaded (the API layer
+ * is unreachable or returns a non-JSON response); App surfaces that as an error
+ * and retries on the next sync.
  */
 
 import type { Calendar, FetchStatus } from "./leetcode";
@@ -34,17 +34,10 @@ interface RosterResponse {
   defaults: string[];
 }
 
-/** Thrown when a roster write needs an admin token (HTTP 401). */
-export class AdminRequiredError extends Error {
-  constructor() {
-    super("Admin token required");
-    this.name = "AdminRequiredError";
-  }
-}
-
 /**
- * Load the whole board in ONE call. Returns null (not an error) when the API
- * layer isn't present, which the caller treats as "use the local fallback".
+ * Load the whole board in ONE call. Returns null when the board can't be loaded
+ * (the API layer is unreachable or returns a non-JSON response); the caller
+ * surfaces that as an error notice and retries on the next sync.
  */
 export async function loadBoardViaApi(): Promise<BoardEntry[] | null> {
   try {
@@ -58,7 +51,7 @@ export async function loadBoardViaApi(): Promise<BoardEntry[] | null> {
     if (!data || !Array.isArray(data.users)) return null;
     return data.users;
   } catch {
-    return null; // network/abort → fall back
+    return null; // network/abort → board unavailable
   }
 }
 
@@ -66,18 +59,12 @@ async function rosterWrite(
   method: "POST" | "DELETE",
   url: string,
   body: unknown,
-  adminToken: string,
 ): Promise<string[]> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (adminToken) headers["x-admin-token"] = adminToken;
-
   const res = await fetch(url, {
     method,
-    headers,
+    headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-
-  if (res.status === 401) throw new AdminRequiredError();
 
   const data: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -89,19 +76,11 @@ async function rosterWrite(
 }
 
 /** Add a user to the shared roster; returns the updated roster. */
-export function apiAddUser(username: string, adminToken: string): Promise<string[]> {
-  return rosterWrite("POST", "/api/roster", { username }, adminToken);
+export function apiAddUser(username: string): Promise<string[]> {
+  return rosterWrite("POST", "/api/roster", { username });
 }
 
 /** Remove a user from the shared roster; returns the updated roster. */
-export function apiRemoveUser(
-  username: string,
-  adminToken: string,
-): Promise<string[]> {
-  return rosterWrite(
-    "DELETE",
-    `/api/roster?user=${encodeURIComponent(username)}`,
-    undefined,
-    adminToken,
-  );
+export function apiRemoveUser(username: string): Promise<string[]> {
+  return rosterWrite("DELETE", `/api/roster?user=${encodeURIComponent(username)}`, undefined);
 }
