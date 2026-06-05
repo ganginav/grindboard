@@ -21,11 +21,3 @@ export interface BoardUser {
 
 /** Metric the leaderboard is currently ranking by. */
 export type Metric = "today" | "week" | "total";
-
-/**
- * Where the board's data comes from:
- *  - "api": shared, server-backed (/api/* serverless routes + Redis)
- *  - "local": per-browser fallback (direct alfa fetch + localStorage roster)
- *  - "detecting": still probing which one is available
- */
-export type BoardMode = "detecting" | "api" | "local";
