@@ -6,6 +6,7 @@ import {
   removeRosterUser,
 } from "./_lib/store.js";
 import { DEFAULT_USERS } from "./_lib/config.js";
+import { redisEnabled } from "./_lib/redis.js";
 import { allowCors, queryParam, requireAdmin, validUsername } from "./_lib/http.js";
 
 /**
@@ -23,7 +24,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     case "GET": {
       const users = await getRoster();
-      return res.status(200).json({ users, defaults: DEFAULT_USERS });
+      // `redis` reports whether persistence is actually wired up in THIS
+      // deployment. If false, adds can't persist (roster = committed defaults
+      // only) — the usual cause is missing Upstash env vars or a deploy made
+      // before they were added.
+      return res.status(200).json({ users, defaults: DEFAULT_USERS, redis: redisEnabled() });
     }
 
     case "POST": {
